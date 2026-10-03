@@ -1,19 +1,25 @@
-import * as React from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Provider as PaperProvider } from 'react-native-paper';
+import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
+import AppRoutes from './routes/AppRoutes';
+import { AppDataProvider } from './state/AppData';
 
-import Login from './pages/Login';
-import SignUp from './pages/SignUp';
-
-const Stack = createNativeStackNavigator();
+const safeAreaMetrics = initialWindowMetrics ?? {
+  frame: { x: 0, y: 0, width: 0, height: 0 },
+  insets: { top: 0, right: 0, bottom: 0, left: 0 },
+};
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="SignUp" component={SignUp} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider initialMetrics={safeAreaMetrics}>
+      <PaperProvider>
+        <AppDataProvider>
+          <NavigationContainer>
+            <AppRoutes />
+          </NavigationContainer>
+        </AppDataProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }

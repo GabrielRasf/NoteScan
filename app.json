@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "note-scan",
-    "slug": "snack-906c1aa7-0d37-46f5-a91e-029e68fbd201",
+    "name": "NoteScan",
+    "slug": "notescan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,17 +13,38 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.notescan.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "O NoteScan usa a câmera para fotografar notas e cupons.",
+        "NSPhotoLibraryUsageDescription": "O NoteScan abre suas fotos para você escolher uma nota ou cupom."
+      }
     },
     "android": {
+      "package": "com.notescan.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O NoteScan abre suas fotos para você escolher uma nota ou cupom.",
+          "cameraPermission": "O NoteScan usa a câmera para fotografar notas e cupons.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ]
   }
 }
