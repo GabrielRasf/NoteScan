@@ -55,8 +55,7 @@ export default function DistributionChart({ summary }) {
                 fill="none"
                 strokeDasharray={`${length} ${circumference - length}`}
                 strokeDashoffset={-consumed}
-                rotation="-90"
-                origin={`${size / 2}, ${size / 2}`}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
               />
             );
             consumed += length;

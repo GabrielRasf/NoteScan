@@ -12,6 +12,7 @@ O NoteScan é um aplicativo mobile para registrar gastos a partir de uma foto de
 - Revisar descrição, valor, data e categoria antes de salvar.
 - Preencher um gasto manualmente, com o mesmo formato dos gastos lidos por OCR.
 - Guardar, editar e excluir gastos em AsyncStorage.
+- Guardar a foto da nota junto do gasto e abrir essa foto em Meus gastos, pelo botão "Ver nota".
 - Escolher quais categorias aparecem ao salvar. Um gasto antigo permanece na categoria em que foi gravado.
 - Mostrar o gráfico só com a soma dos gastos salvos. Sem gastos, o gráfico não inventa números.
 
@@ -84,7 +85,7 @@ Permissões pedidas na hora da captura:
 - câmera, para fotografar a nota;
 - fotos, para escolher uma imagem existente.
 
-Os textos estão em `app.json`, no plugin `expo-image-picker`. A imagem usada na leitura permanece no cache do seletor. O app não grava essa imagem na galeria e não mostra o caminho interno do arquivo.
+Os textos estão em `app.json`, no plugin `expo-image-picker`. O app não grava a imagem na galeria e não mostra o caminho interno do arquivo.
 
 ## Armazenamento
 
@@ -95,7 +96,34 @@ Tudo é local, via AsyncStorage:
 
 Se existir a chave antiga `@user_categories`, ela é copiada uma vez para `@notescan/categories`. JSON ilegível não é apagado automaticamente; a tela mostra erro e não substitui esses dados.
 
-Um gasto tem `id`, `amount`, `description`, `date`, `category`, `ocrText` e `createdAt`. Descrição, data e texto OCR podem ser nulos. O valor e a categoria são obrigatórios para salvar.
+Um gasto tem `id`, `amount`, `description`, `date`, `category`, `ocrText`, `receiptImage` e `createdAt`. Descrição, data, texto OCR e foto podem ser nulos. O valor e a categoria são obrigatórios para salvar. Gastos gravados antes da foto existir continuam válidos sem `receiptImage`.
+
+### Foto da nota
+
+Ao salvar um gasto que veio de uma foto, a imagem é copiada do cache do seletor para `receipts/<id do gasto>.<extensão>`, na pasta de documentos do app (`expo-file-system`). Essa pasta é privada do NoteScan, não aparece na galeria e o sistema não a limpa como faz com o cache. O gasto guarda só o caminho relativo, porque no iOS o endereço absoluto da pasta de documentos muda entre atualizações.
+
+- Se a cópia falhar, o gasto não é salvo e a revisão continua aberta para tentar de novo.
+- Se a gravação do gasto falhar depois da cópia, a foto copiada é apagada.
+- Excluir o gasto apaga a foto dele.
+- Editar o gasto mantém a foto.
+- Gasto lançado manualmente não tem foto.
+- Na web não há pasta de documentos. O gasto é salvo sem foto.
+
+### Arquivos temporários
+
+`services/files/temporaryFiles.js` controla a pasta `notescan-tmp`, dentro do cache do app (`Paths.cache`). Só essa camada cria ou apaga arquivos nela.
+
+- O nome de cada arquivo é `<id do gasto>__<sufixo único>.<extensão>`. O id do gasto é gerado quando a foto é capturada e é o mesmo que o gasto recebe ao ser salvo. Assim, gasto → id do temporário → caminho fica explícito.
+- O expo-image-picker grava cada foto como `<UUID>.<ext>` em `cache/ImagePicker` (no Expo Go para iOS, às vezes direto na raiz do cache). Só um arquivo assim é movido para `notescan-tmp`. Se mover falhar, a foto é copiada, a cópia é conferida (existe e tem o mesmo tamanho) e só então o original sai. Qualquer outra origem é copiada e o original fica intacto. `content://`, `ph://`, `assets-library://`, `data:` e `blob:` não são aceitos; nesse caso a captura segue com o endereço original, sem temporário.
+- Os caminhos são comparados na forma canônica: decodificada, sem `file://` e com `/private/var` → `/var` (iOS) e `/data/data` → `/data/user/0` (Android). Diferença de maiúsculas e minúsculas não é tratada como o mesmo caminho, então a operação é recusada.
+- A leitura do OCR e a cópia para `receipts/` marcam o arquivo como em uso. Uma exclusão pedida nesse intervalo fica pendente e acontece quando o uso termina.
+- Salvar copia o temporário para `receipts/` e apaga o temporário. Durante esse instante a foto existe nos dois lugares, porque o temporário é a única fonte para uma nova tentativa. Se a cópia for interrompida, a foto parcial em `receipts/` é apagada. Se a gravação do gasto falhar, o temporário fica para nova tentativa e a cópia em `receipts/` é desfeita.
+- Se o app for encerrado entre a cópia para `receipts/` e a gravação do gasto, a foto fica em `receipts/` sem gasto. O app não apaga fotos de `receipts/` automaticamente.
+- Fechar a revisão, salvando ou cancelando, apaga os temporários daquele gasto. Sair da captura durante a leitura também.
+- Excluir um gasto, pela tela ou pelas rotinas internas (incluindo o `delete` da demonstração), passa por `services/expenses/expenseRemoval.js`. Essa função remove o registro, a foto em `receipts/` e os temporários com o id do gasto.
+- Se o sistema recusar uma exclusão, o arquivo entra numa fila que é tentada de novo depois, sem derrubar o app.
+- Ao abrir o app, arquivos de `notescan-tmp` com o padrão de nome do NoteScan e que não pertencem à execução atual são apagados. Arquivos fora desse padrão, pastas e qualquer coisa fora dessa pasta nunca são tocados. O registro da execução atual sobrevive ao Fast Refresh, então recarregar o código em desenvolvimento não apaga o temporário de uma revisão aberta.
+- Toda operação valida o nome contra o padrão acima e confere que o caminho canônico é filho direto da pasta controlada. Caminhos com `..`, `%2e%2e`, `\`, separador codificado, `?` ou `#` são recusados.
 
 O valor digitado usa vírgula como decimal. Ponto em grupos de três é milhar: `1.234` vale 1234 e `1.234,56` vale 1234,56. Um ponto com uma ou duas casas, como `10.50`, continua valendo decimal.
 
@@ -120,6 +148,10 @@ Não há lint configurado e o projeto não está em TypeScript, então não há 
 - `pages/More.js` — preferências de categoria neste aparelho
 - `pages/Review.js` e `pages/ManualEntry.js` — o mesmo formulário de gasto
 - `pages/Expenses.js` — histórico
+- `pages/Receipt.js` — foto da nota de um gasto
+- `services/receipts/receiptFiles.js` — cópia, endereço e exclusão da foto da nota
+- `services/files/temporaryFiles.js` — arquivos temporários: criação, uso, exclusão e limpeza
+- `services/expenses/expenseRemoval.js` — exclusão de um gasto com seus arquivos
 - `pages/Chart.js` — totais calculados dos gastos
 - `services/storage` — leitura e gravação
 - `services/ocr/recognizeText.js` — OCR isolado, para poder testar sucesso, texto vazio, erro e tempo esgotado sem a câmera

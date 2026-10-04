@@ -3,15 +3,12 @@ import { listCategories, saveCategories } from '../services/storage/categoriesSt
 import {
   applyDemoLaunch,
   applyDemoPurge,
-  deleteDemoExpenses,
-  seedDemoExpenses,
+  resetDemoData,
+  seedDemoData,
 } from '../services/dev/demoExpenses';
-import {
-  listExpenses,
-  removeExpense,
-  saveExpense,
-  updateExpense,
-} from '../services/storage/expensesStore';
+import { deleteExpenseAndFiles } from '../services/expenses/expenseRemoval';
+import { temporaryFiles } from '../services/files/temporaryFiles';
+import { listExpenses, saveExpense, updateExpense } from '../services/storage/expensesStore';
 
 const AppDataContext = createContext(null);
 
@@ -43,6 +40,8 @@ export function AppDataProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
+    temporaryFiles.cleanupOrphans();
+    temporaryFiles.cleanup();
 
     (async () => {
       await reload();
@@ -50,11 +49,13 @@ export function AppDataProvider({ children }) {
       if (!cancelled && purged.purged) {
         setExpenses(purged.value);
         setExpensesError(null);
+        if (purged.categories) setCategorySelection(purged.categories);
       }
       const demo = await applyDemoLaunch();
       if (cancelled || !demo.applied) return;
       setExpenses(demo.value);
       setExpensesError(null);
+      if (demo.categories) setCategorySelection(demo.categories);
     })();
 
     return () => {
@@ -85,7 +86,7 @@ export function AppDataProvider({ children }) {
   }, []);
 
   const deleteExpense = useCallback(async (id) => {
-    const result = await removeExpense(id);
+    const result = await deleteExpenseAndFiles(id);
     if (!result.ok) {
       setExpensesError('Não foi possível remover o gasto.');
       return { ok: false };
@@ -107,24 +108,26 @@ export function AppDataProvider({ children }) {
   }, [categorySelection]);
 
   const loadDemoExpenses = useCallback(async () => {
-    const result = await seedDemoExpenses();
+    const result = await seedDemoData();
     if (!result.ok) {
       setExpensesError('Não foi possível gerar os dados de demonstração.');
       return result;
     }
     setExpenses(result.value);
     setExpensesError(null);
+    if (result.categories) setCategorySelection(result.categories);
     return result;
   }, []);
 
   const deleteDemoData = useCallback(async () => {
-    const result = await deleteDemoExpenses();
+    const result = await resetDemoData();
     if (!result.ok) {
       setExpensesError('Não foi possível remover os dados de demonstração.');
       return result;
     }
     setExpenses(result.value);
     setExpensesError(null);
+    if (result.categories) setCategorySelection(result.categories);
     return result;
   }, []);
 

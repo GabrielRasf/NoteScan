@@ -25,13 +25,17 @@ export default function DevDemoData() {
     <Card style={styles.card}>
       <Text style={styles.title}>Desenvolvimento</Text>
       <Text style={styles.text}>
-        Gera gastos temporários para ver o resumo. O comando delete remove só esses registros.
+        Gera gastos temporários para ver o resumo. O comando delete remove só esses registros e as categorias que eles marcaram.
       </Text>
       <PrimaryButton
         label="Gerar dados de demonstração"
         disabled={busy}
         onPress={() =>
-          run(loadDemoExpenses, (result) => `${result.added} gastos de demonstração gravados.`)
+          run(loadDemoExpenses, (result) =>
+            result.alreadySeeded
+              ? 'Os dados de demonstração já estão carregados.'
+              : `${result.added} gastos de demonstração gravados.`
+          )
         }
       />
       <TextAction

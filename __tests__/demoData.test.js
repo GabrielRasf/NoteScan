@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import App from '../App';
 import { applyDemoLaunch, applyDemoPurge, deleteDemoExpenses, demoExpenses } from '../services/dev/demoExpenses';
+import { periodLabel } from '../services/chart/period';
 import { formatBrl, roundMoney } from '../services/expenses/money';
 import { saveCategories } from '../services/storage/categoriesStore';
 import { listExpenses, saveExpense } from '../services/storage/expensesStore';
@@ -87,12 +88,12 @@ describe('dados de demonstração', () => {
 
     await openTab('tab-home', 'Olá');
     expect(screen.getAllByText(formatBrl(roundMoney(demoTotal + 10))).length).toBeGreaterThan(0);
-    expect(screen.getByText('jan 2026 – abr 2026')).toBeTruthy();
-    expect(screen.getByText('Ração')).toBeTruthy();
+    expect(screen.getByText(periodLabel(withDemo.value))).toBeTruthy();
+    expect(screen.getByText('Padaria Pão Quente')).toBeTruthy();
 
     await openTab('tab-expenses', 'Meus gastos');
     expect(screen.getByText('Padaria')).toBeTruthy();
-    expect(screen.getByText('Mercado Central')).toBeTruthy();
+    expect(screen.getAllByText('Mercado Central').length).toBeGreaterThan(0);
 
     await openTab('tab-chart', `Total ${formatBrl(roundMoney(demoTotal + 10))}`);
 

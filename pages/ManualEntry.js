@@ -1,6 +1,6 @@
 import React from 'react';
-import { Alert } from 'react-native';
 import ExpenseForm from '../components/ExpenseForm';
+import { showMessage } from '../services/ui/dialogs';
 import { useAppData } from '../state/AppData';
 
 const emptyDraft = {
@@ -27,7 +27,7 @@ export default function ManualEntry({ navigation }) {
       onSubmit={async (expense) => {
         const result = await addExpense(expense);
         if (!result.ok) {
-          Alert.alert('Erro', 'Não foi possível salvar o gasto.');
+          showMessage('Erro', 'Não foi possível salvar o gasto.');
           return result;
         }
         navigation.goBack();

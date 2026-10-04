@@ -11,6 +11,9 @@ function isExpense(value) {
       (value.date === null || typeof value.date === 'string') &&
       typeof value.category === 'string' &&
       (value.ocrText === null || typeof value.ocrText === 'string') &&
+      (value.receiptImage === undefined ||
+        value.receiptImage === null ||
+        typeof value.receiptImage === 'string') &&
       typeof value.createdAt === 'string'
   );
 }

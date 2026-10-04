@@ -1,4 +1,5 @@
 import { isKnownCategory } from '../../data/categories';
+import { receiptImageUri } from '../receipts/receiptFiles';
 import { formatAmountInput, parseAmountInput } from './money';
 import { parseReceiptText } from './parseReceiptText';
 
@@ -52,14 +53,15 @@ export function validateExpenseDraft(draft, currentCategory) {
   };
 }
 
-export function createExpense(fields, now = new Date()) {
+export function createExpense(fields, now = new Date(), id = createId()) {
   return {
-    id: createId(),
+    id,
     amount: fields.amount,
     description: fields.description,
     date: fields.date,
     category: fields.category,
     ocrText: fields.ocrText,
+    receiptImage: null,
     createdAt: now.toISOString(),
   };
 }
@@ -75,7 +77,7 @@ export function applyExpenseEdits(existing, fields) {
   };
 }
 
-export function draftFromRecognition({ text, imageUri, notice }) {
+export function draftFromRecognition({ text, imageUri, imageTempId, contentId, notice }) {
   const parsed = parseReceiptText(text || '');
   const trimmed = typeof text === 'string' ? text.trim() : '';
 
@@ -86,6 +88,8 @@ export function draftFromRecognition({ text, imageUri, notice }) {
     category: '',
     ocrText: trimmed || null,
     imageUri: imageUri || null,
+    imageTempId: imageTempId || null,
+    contentId: contentId || null,
     notice:
       notice ??
       (trimmed ? null : 'Nenhum texto foi reconhecido. Preencha os dados manualmente.'),
@@ -99,7 +103,7 @@ export function draftFromExpense(expense) {
     dateText: expense.date || '',
     category: expense.category,
     ocrText: expense.ocrText,
-    imageUri: null,
+    imageUri: receiptImageUri(expense.receiptImage),
     notice: null,
   };
 }

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -7,9 +7,11 @@ import { TextAction } from '../components/Buttons';
 import Container from '../components/Container';
 import { colors, radius, space } from '../theme/tokens';
 import { imageFromPickerResult } from '../services/capture/imageResult';
-import { draftFromRecognition } from '../services/expenses/expense';
+import { createId, draftFromRecognition } from '../services/expenses/expense';
+import { temporaryFiles } from '../services/files/temporaryFiles';
 import { OcrError } from '../services/ocr/errors';
 import { recognizeText } from '../services/ocr/recognizeText';
+import { showMessage } from '../services/ui/dialogs';
 
 export default function Camera() {
   const navigation = useNavigation();
@@ -32,24 +34,43 @@ export default function Camera() {
     }
   };
 
-  const processImage = async (uri) => {
+  const processImage = async (pickedUri) => {
+    const contentId = createId();
+    const adopted = temporaryFiles.adopt(pickedUri, { ownerId: contentId });
+    const uri = adopted.ok ? adopted.uri : pickedUri;
+    const imageTempId = adopted.ok ? adopted.id : null;
     setImageUri(uri);
     setLoading(true);
+
+    let draft;
     try {
-      const recognition = await recognizeText(uri);
-      openReview(draftFromRecognition({ text: recognition.text, imageUri: uri }));
+      const recognition = imageTempId
+        ? await temporaryFiles.use(imageTempId, recognizeText)
+        : await recognizeText(uri);
+      draft = draftFromRecognition({ text: recognition.text, imageUri: uri, imageTempId, contentId });
     } catch (error) {
       const message =
         error instanceof OcrError
           ? error.message
           : 'Não foi possível ler o texto desta imagem.';
-      openReview(
-        draftFromRecognition({
-          text: '',
-          imageUri: uri,
-          notice: message,
-        })
-      );
+      draft = draftFromRecognition({
+        text: '',
+        imageUri: uri,
+        imageTempId,
+        contentId,
+        notice: message,
+      });
+    }
+
+    if (!mounted.current) {
+      temporaryFiles.deleteForContent(contentId);
+      return;
+    }
+    try {
+      openReview(draft);
+    } catch (error) {
+      temporaryFiles.deleteForContent(contentId);
+      throw error;
     }
   };
 
@@ -62,7 +83,7 @@ export default function Camera() {
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      Alert.alert(
+      showMessage(
         'Permissão necessária',
         mode === 'camera'
           ? 'Permita o uso da câmera para fotografar a nota.'
@@ -80,13 +101,13 @@ export default function Camera() {
       const selected = imageFromPickerResult(result);
       if (selected.status === 'canceled') return;
       if (selected.status === 'invalid') {
-        Alert.alert('Imagem inválida', 'Não foi possível usar esta imagem.');
+        showMessage('Imagem inválida', 'Não foi possível usar esta imagem.');
         return;
       }
       await processImage(selected.uri);
     } catch (error) {
       if (mounted.current) setLoading(false);
-      Alert.alert(
+      showMessage(
         'Não foi possível abrir',
         mode === 'camera'
           ? 'Não foi possível abrir a câmera.'
@@ -104,7 +125,7 @@ export default function Camera() {
         {imageUri ? (
           <Image source={{ uri: imageUri }} style={styles.preview} accessibilityLabel="Prévia da nota" />
         ) : (
-          <Text style={styles.hint}>A foto abre na câmera do aparelho. Nada é copiado para a galeria.</Text>
+          <Text style={styles.hint}>A foto abre na câmera do aparelho e fica guardada só no NoteScan, junto do gasto. Nada é copiado para a galeria.</Text>
         )}
         {loading ? (
           <View style={styles.loading}>

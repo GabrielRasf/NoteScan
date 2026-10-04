@@ -1,9 +1,11 @@
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import ExpenseCard from '../components/ExpenseCard';
 import Container from '../components/Container';
 import EmptyState from '../components/EmptyState';
 import ScreenHeader from '../components/ScreenHeader';
+import { receiptImageUri } from '../services/receipts/receiptFiles';
+import { confirmAction } from '../services/ui/dialogs';
 import { space } from '../theme/tokens';
 import { useAppData } from '../state/AppData';
 import { useNavigation } from '@react-navigation/native';
@@ -13,14 +15,12 @@ export default function Expenses() {
   const { expenses, expensesReady, expensesError, deleteExpense } = useAppData();
 
   const confirmDelete = (expense) => {
-    Alert.alert('Excluir gasto', 'O gasto será removido deste aparelho.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: () => deleteExpense(expense.id),
-      },
-    ]);
+    confirmAction({
+      title: 'Excluir gasto',
+      message: 'O gasto e a foto da nota serão removidos deste aparelho.',
+      confirmLabel: 'Excluir',
+      onConfirm: () => deleteExpense(expense.id),
+    });
   };
 
   return (
@@ -39,6 +39,8 @@ export default function Expenses() {
           <ExpenseCard
             key={expense.id}
             expense={expense}
+            receiptUri={receiptImageUri(expense.receiptImage)}
+            onOpenReceipt={() => navigation.navigate('Receipt', { expenseId: expense.id })}
             onEdit={() => navigation.navigate('Review', { expenseId: expense.id })}
             onDelete={() => confirmDelete(expense)}
           />

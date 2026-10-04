@@ -18,7 +18,7 @@ export default function More() {
         <Card style={styles.note}>
           <Text style={styles.noteTitle}>Dados neste aparelho</Text>
           <Text style={styles.noteText}>
-            O NoteScan não tem conta nem servidor. Gastos e categorias ficam só neste aparelho.
+            O NoteScan não tem conta nem servidor. Gastos, fotos das notas e categorias ficam só neste aparelho.
           </Text>
         </Card>
         <Text style={styles.section}>Categorias</Text>

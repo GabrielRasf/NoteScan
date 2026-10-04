@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Checkbox } from 'react-native-paper';
 import { categoriesData } from '../data/categories';
+import { showMessage } from '../services/ui/dialogs';
 import { colors, radius, space } from '../theme/tokens';
 import { PrimaryButton } from './Buttons';
 import Card from './Card';
@@ -28,10 +29,10 @@ export default function Categories({ savedSelection, ready, loadError, onSave })
     const result = await onSave(selectedSubs);
     setSaving(false);
     if (!result?.ok) {
-      Alert.alert('Erro', 'Não foi possível salvar suas preferências.');
+      showMessage('Erro', 'Não foi possível salvar suas preferências.');
       return;
     }
-    Alert.alert('Sucesso', 'Preferências salvas.');
+    showMessage('Sucesso', 'Preferências salvas.');
   };
 
   return (

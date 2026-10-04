@@ -52,7 +52,7 @@ export default function ExpenseForm({
     setSaving(true);
     const expense = existingExpense
       ? applyExpenseEdits(existingExpense, validation.fields)
-      : createExpense(validation.fields);
+      : createExpense(validation.fields, new Date(), initialDraft.contentId || undefined);
     const result = await onSubmit(expense);
     if (!result?.ok) setSaving(false);
   };

@@ -1,11 +1,11 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { formatBrl } from '../services/expenses/money';
 import { colors, radius, space, type } from '../theme/tokens';
 import { visualForCategory } from './categoryVisual';
 
-export default function ExpenseCard({ expense, onEdit, onDelete }) {
+export default function ExpenseCard({ expense, receiptUri, onOpenReceipt, onEdit, onDelete }) {
   const visual = visualForCategory(expense.category);
 
   return (
@@ -17,6 +17,17 @@ export default function ExpenseCard({ expense, onEdit, onDelete }) {
         <Text style={styles.title}>{expense.description || 'Sem descrição'}</Text>
         <Text style={styles.meta}>{expense.category}</Text>
         <Text style={styles.meta}>{expense.date || 'Sem data'}</Text>
+        {receiptUri && onOpenReceipt ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ver nota"
+            onPress={onOpenReceipt}
+            style={styles.receipt}
+          >
+            <Image source={{ uri: receiptUri }} style={styles.thumbnail} />
+            <Text style={styles.action}>Ver nota</Text>
+          </Pressable>
+        ) : null}
         {onEdit || onDelete ? (
           <View style={styles.actions}>
             {onEdit ? <TextAction label="Editar" onPress={onEdit} /> : null}
@@ -68,6 +79,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink,
     marginLeft: space.sm,
+  },
+  receipt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginTop: space.sm,
+  },
+  thumbnail: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.sm,
+    backgroundColor: colors.line,
   },
   actions: {
     flexDirection: 'row',
